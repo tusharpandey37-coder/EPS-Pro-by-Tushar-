@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EPS Pension Verification Tool V1.0</title>
+  <meta name="description" content="EPS Pension Verification Tool V1.0 — privately developed by Tushar Pandey, RO Dadar.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="aurora aurora-one"></div><div class="aurora aurora-two"></div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">₹</span><div><strong>EPS<span>95</span></strong><small>Verification Tool V1.0</small></div></div>
+    <button class="ghost-btn" id="resetBtn">Reset example</button>
+  </header>
+  <nav class="app-nav" aria-label="Workbook sections">
+    <button class="nav-item active" data-view="calculator">Calculator</button>
+    <button class="nav-item" data-view="arrears">Arrears</button>
+    <button class="nav-item" data-view="tables">Reference tables</button>
+    <button class="nav-item" data-view="readme">Read Me</button>
+  </nav>
+  <div class="developer-credit">Developed by <strong>Tushar Pandey</strong> · RO Dadar</div>
+
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">EPS PENSION VERIFICATION TOOL · V1.0</div>
+        <h1>Verify your<br><em>pension pathway.</em></h1>
+        <p class="hero-copy">Enter your employment spells, wage inputs and service details to produce an illustrative EPS pension verification estimate.</p>
+      </div>
+      <div class="hero-card">
+        <span class="mini-label">CURRENT ESTIMATE</span>
+        <div class="hero-number" id="heroPension">₹0</div>
+        <div class="hero-caption">estimated monthly member pension</div>
+        <div class="status-pill" id="eligibilityPill">Add service details</div>
+      </div>
+    </section>
+
+    <section class="progress"><div class="progress-step active"><b>01</b><span>Member</span></div><div class="line"></div><div class="progress-step"><b>02</b><span>Service ledger</span></div><div class="line"></div><div class="progress-step"><b>03</b><span>Estimate</span></div></section>
+
+    <form id="calculatorForm">
+      <section class="panel">
+        <div class="section-head"><div><span class="section-kicker">01 / MEMBER PROFILE</span><h2>Who are we calculating for?</h2></div><span class="tag">Inputs</span></div>
+        <div class="grid three">
+          <label>Member name<input id="memberName" value="Baby S" placeholder="Your name"></label>
+          <label>Date of birth<input id="dob" type="date" value="1968-04-30"></label>
+          <label>20 years+ service in EPS-95?<select id="twentyYears"><option>Yes</option><option>No</option></select></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><div><span class="section-kicker">02 / SERVICE LEDGER</span><h2>Build your employment timeline</h2><p class="muted">Add one row per employment spell. Keep the oldest spell first.</p></div><button type="button" class="accent-btn" id="addRow">＋ Add employment</button></div>
+        <div class="table-wrap">
+          <table id="serviceTable">
+            <thead><tr><th>#</th><th>Employer / Member ID</th><th>Date of joining</th><th>Date of exit</th><th>NCP days<br><small>16-11-95 → 31-08-14</small></th><th>NCP days<br><small>01-09-14 onward</small></th><th>Calculated pensionable days</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="hint">NCP means non-contributory period. Enter NCP separately for each side of 01 September 2014.</p>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><div><span class="section-kicker">03 / WAGE INPUTS</span><h2>Complete the wage picture</h2></div><span class="tag">Inputs</span></div>
+        <div class="grid three">
+          <label>Wage on 15-11-1995 <span class="unit">₹ / month</span><input id="oldWage" type="number" min="0" value="2499"></label>
+          <label>EPS wages over last 60 months <span class="unit">₹ total</span><input id="wageSum" type="number" min="0" value="900000"></label>
+          <label>NCP days in last 60 months <span class="unit">days</span><input id="lastNcp" type="number" min="0" value="0"></label>
+        </div>
+      </section>
+
+      <section class="results" id="results">
+        <div class="result-main">
+          <div class="section-kicker">YOUR ILLUSTRATIVE RESULT</div>
+          <h2>Monthly member pension</h2>
+          <div class="big-result" id="monthlyPension">₹0</div>
+          <p id="resultNote">Complete the ledger to calculate.</p>
+          <div class="result-grid">
+            <div><span>Past service benefit</span><strong id="pastBenefit">₹0</strong></div>
+            <div><span>Formula pension</span><strong id="formulaPension">₹0</strong></div>
+            <div><span>Eligible service</span><strong id="eligibleService">0 years</strong></div>
+            <div><span>Pension commencement</span><strong id="commencement">—</strong></div>
+          </div>
+        </div>
+        <div class="breakdown">
+          <div class="section-kicker">CALCULATION SNAPSHOT</div>
+          <div class="metric"><span>Average pensionable salary</span><b id="avgSalary">₹0</b></div>
+          <div class="metric"><span>Table B factor</span><b id="tableFactor">0</b></div>
+          <div class="metric"><span>Past-service multiplier</span><b id="multiplier">0</b></div>
+          <div class="metric"><span>2-year weightage</span><b id="weightage">0 days</b></div>
+          <div class="metric"><span>Eligibility</span><b id="eligibilityText">—</b></div>
+        </div>
+      </section>
+    </form>
+
+    <section class="notes">
+      <h3>How this estimate works</h3>
+      <div class="note-grid"><p><b>Past service</b><br>Service before 16 November 1995 uses a wage-slab multiplier and the Table B factor.</p><p><b>Formula pension</b><br>Service from 16 November 1995 is split at 31 August 2014 and 01 September 2014, with NCP deducted separately.</p><p><b>Scope</b><br>This version follows the workbook's member-pension logic and does not cover early, deferred, higher-wage or family pension options.</p></div>
+    </section>
+  </main>
+
+
+<section class="extra-view" id="arrearsView" hidden>
+  <div class="panel">
+    <div class="section-head"><div><span class="section-kicker">ARREARS</span><h2>Arrears of pension</h2><p class="muted">Calculated from the pension commencement date through the selected month-end.</p></div><span class="tag">Homepage module</span></div>
+    <div class="grid three">
+      <label>Monthly pension<input id="arrearsPension" type="number" min="0" value="0"></label>
+      <label>Pension commencement date<input id="arrearsStart" type="date"></label>
+      <label>Compute up to<input id="arrearsCutoff" type="date"></label>
+    </div>
+    <div class="arrears-card">
+      <div><span>Commencement-month amount</span><strong id="partMonthAmount">₹0</strong></div>
+      <div><span>Full months</span><strong id="fullMonths">0</strong></div>
+      <div><span>Full-month amount</span><strong id="fullMonthAmount">₹0</strong></div>
+      <div class="total"><span>Total arrears payable</span><strong id="totalArrears">₹0</strong></div>
+    </div>
+    <p class="hint">This follows the workbook's arrears convention. TDS, relief and government subsidy are not applied.</p>
+  </div>
+</section>
+
+<section class="extra-view" id="tablesView" hidden>
+  <div class="panel"><div class="section-head"><div><span class="section-kicker">REFERENCE TABLES</span><h2>Workbook reference tables</h2></div></div>
+    <h3>Table B — factor for past service benefit</h3>
+    <div class="table-wrap"><table><thead><tr><th>Completed years since 16-11-1995</th><th>Factor</th></tr></thead><tbody id="tableBBody"></tbody></table></div>
+    <h3 class="subhead">Past service multiplier</h3>
+    <div class="table-wrap"><table><thead><tr><th>Past service</th><th>Wage ≤ ₹2,500</th><th>Wage &gt; ₹2,500</th></tr></thead><tbody>
+      <tr><td>Up to 11 years</td><td>80</td><td>85</td></tr><tr><td>More than 11, up to 15 years</td><td>90</td><td>95</td></tr><tr><td>More than 15, up to 20 years</td><td>100</td><td>105</td></tr><tr><td>More than 20 years</td><td>110</td><td>120</td></tr>
+    </tbody></table></div>
+  </div>
+</section>
+
+<section class="extra-view" id="readmeView" hidden>
+  <div class="panel readme-panel"><span class="section-kicker">WORKBOOK NOTES</span><h2>Read Me</h2>
+    <p>This tool calculates a member's own EPS-95 monthly pension on normal age-58 superannuation, plus arrears from the date of commencement.</p>
+    <p><b>Core structure:</b> Total monthly pension = Past Service Benefit for service before 16-11-1995 + Formula Pension for service from 16-11-1995, subject to the ₹1,000 statutory minimum.</p>
+    <p><b>Not covered:</b> early pension, deferred pension, higher-wage pension option, and family / widow / children / orphan pension.</p>
+    <p><b>Service ledger:</b> Each employment spell is split into past service, service up to 31-08-2014, and service from 01-09-2014. NCP days are deducted separately for the two periods.</p>
+    <p><b>Arrears:</b> Full monthly pension is applied to completed months, with a pro-rated amount for the commencement month.</p>
+  </div>
+</section>
+
+  <footer>
+    <div><strong>EPS Pension Verification Tool V1.0</strong><br><span>Developed by Tushar Pandey · RO Dadar</span></div>
+    <div class="footer-right">Queries & feedback: <a href="mailto:tusharpandey@duck.com">tusharpandey@duck.com</a><br><small class="disclaimer"><b>Disclaimer:</b> This app is privately made and has no connection with EPFO. It is an illustrative verification tool, not an official determination of pension entitlement. Calculations should be independently checked against applicable rules and official records.<br><b>Copyright © Tushar Pandey</b></small></div>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
