@@ -20,3 +20,9 @@ Open `index.html` in a browser. No build step or server is required.
 - Queries and feedback: tusharpandey@duck.com
 
 Copyright © Tushar Pandey.
+
+## V1.0.1 fix
+- Restored the collapsible tools menu behavior.
+- Calculator, Arrears, Reference tables and Read Me menu buttons now switch views.
+- Menu closes after selection, outside click, or Escape.
+- Existing initial example rows and calculation controls are preserved.
