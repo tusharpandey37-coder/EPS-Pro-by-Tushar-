@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPFO EPS Multi-Service & Arrears Calculator — V2</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
+    .header-bar { background: #1a365d; color: white; padding: 20px 0; margin-bottom: 25px; }
+    .card { border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .card-header { background-color: #2b6cb0; color: white; font-weight: 600; }
+    .service-row { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+    .formula-box { background-color: #edf2f7; border-left: 4px solid #3182ce; padding: 12px; font-family: monospace; font-size: 0.85rem; margin-bottom: 10px; }
+    .disclaimer-box { background-color: #fff8e6; border: 1px solid #ffe58f; border-radius: 6px; padding: 12px 16px; font-size: 0.85rem; color: #856404; }
+    footer { background-color: #1a365d; color: #e2e8f0; margin-top: auto; padding: 15px 0; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar text-center">
+    <h2>EPFO Multi-Service EPS & Strict Arrears Calculator <span class="badge bg-light text-dark">V2</span></h2>
+    <p class="mb-0">Includes Past Service (Table B), NCP Bifurcation & Pro-Rated Arrears Logic</p>
+  </div>
+
+  <div class="container pb-4">
+    <div class="row">
+      <!-- Input Panel -->
+      <div class="col-lg-7">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Member Details & Service Spells</span>
+            <button type="button" class="btn btn-sm btn-light text-dark fw-bold" onclick="addServiceRow()">+ Add Service Spell</button>
+          </div>
+          <div class="card-body">
+            <form id="epsForm">
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Date of Birth (DOB)</label>
+                  <input type="date" class="form-control" id="dob" value="1960-05-15" required onchange="calculatePension()">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold" title="Default is today. Arrears will be calculated up to the end of the month that is two months prior.">Current Calculation Date</label>
+                  <input type="date" class="form-control" id="calcDate" value="2026-09-16" required onchange="calculatePension()">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">Wage on 15.11.1995</label>
+                  <select class="form-select" id="wage1995" onchange="calculatePension()">
+                    <option value="low">≤ ₹2,500</option>
+                    <option value="high" selected>> ₹2,500</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="serviceContainer">
+                <!-- Dynamic Service Rows -->
+              </div>
+
+              <hr>
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="form-label fw-semibold">Total EPS Wages in Last 60 Months (₹)</label>
+                  <input type="number" class="form-control" id="wages60Months" value="870000" required oninput="calculatePension()">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-semibold">NCP in Last 60M (Days)</label>
+                  <input type="number" class="form-control" id="ncp60Months" value="0" required oninput="calculatePension()">
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <div class="d-grid gap-2">
+                  <button type="button" class="btn btn-primary btn-lg" onclick="calculatePension()">Calculate Pension & Arrears</button>
+                  <button type="button" class="btn btn-outline-secondary" onclick="resetCalculator()">Reset Calculator</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Panel -->
+      <div class="col-lg-5">
+        <div class="card">
+          <div class="card-header">Computation Summary & Arrears</div>
+          <div class="card-body">
+            
+            <div id="eligibilityAlert" class="alert alert-success d-none" role="alert"></div>
+
+            <table class="table table-bordered text-sm">
+              <tr><th>Auto Commencement Date (DOB+58)</th><td id="resCommencement">-</td></tr>
+              <tr><th>Total Eligible Service (with Past)</th><td id="resTotalYears">-</td></tr>
+              <tr><th>Avg Pensionable Salary (60M)</th><td id="resAvgSalary">-</td></tr>
+              <tr><th>Weightage Granted</th><td id="resWeightage">-</td></tr>
+              <tr class="table-secondary"><th>Past Service Benefit (Pre-16.11.95)</th><td id="resPSB" class="fw-bold">-</td></tr>
+              <tr class="table-secondary"><th>Formula Pension (Post-16.11.95)</th><td id="resFormula" class="fw-bold">-</td></tr>
+              <tr class="table-primary"><th>Total Monthly Pension (Min ₹1000)</th><td id="resMonthlyPension" class="fw-bold text-success fs-5">-</td></tr>
+            </table>
+
+            <div class="mt-4">
+              <h6 class="fw-bold text-dark border-bottom pb-2">Strict Arrears Breakdown</h6>
+              <p class="text-muted small mb-2">Arrears cut-off is calculated as the end of the month <strong>two months prior</strong> to the Calculation Date.</p>
+              <table class="table table-sm table-bordered">
+                <tr><th>Arrears Cut-off Date Used</th><td id="resCutoffDate">-</td></tr>
+                <tr><th>Part-Month Due (Commencement Month)</th><td id="resPartMonthDue">-</td></tr>
+                <tr><th>Full Months Due</th><td id="resFullMonthsDue">-</td></tr>
+                <tr class="table-warning"><th>Total Initial Arrears Payable</th><td id="resArrearsAmount" class="fw-bold text-dark fs-6">-</td></tr>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disclaimer Box -->
+    <div class="disclaimer-box mt-2">
+      <strong>Disclaimer:</strong> This tool is an independent calculator designed strictly for informational, educational, and estimation purposes. It is not an official application of the Employees' Provident Fund Organisation (EPFO) or any government entity. Final pension eligibility, wage ceilings, service determinations, Table B factor applications, and arrear disbursements are governed exclusively by official EPFO computations and regulations.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center">
+    <div class="container">
+      <span>Developed by <strong>Tushar Pandey</strong></span>
+    </div>
+  </footer>
+
+  <script>
+    let serviceCount = 0;
+
+    // Table B values (Index n = Completed years of actual service since 16-11-1995)
+    const tableB = [
+      1.039, 1.122, 1.212, 1.309, 1.413, 1.526, 1.649, 1.781, 1.923, 2.077, 
+      2.243, 2.423, 2.616, 2.826, 3.052, 3.296, 3.560, 3.845, 4.152, 4.485, 
+      4.843, 5.231, 5.649, 6.101, 6.589, 7.117, 7.686, 8.301, 8.965, 9.682, 
+      10.487, 11.294, 12.197, 13.173, 14.2271, 15.36555, 16.59509, 17.92303, 
+      19.35722, 20.90618, 22.57909, 24.38586
+    ];
+
+    function getMultiplier(pastYears, wageOn15Nov) {
+      const isLowWage = (wageOn15Nov === 'low'); 
+      if (pastYears <= 11) return isLowWage ? 80 : 85;
+      if (pastYears > 11 && pastYears <= 15) return isLowWage ? 90 : 95;
+      if (pastYears > 15 && pastYears <= 20) return isLowWage ? 100 : 105;
+      return isLowWage ? 110 : 120;
+    }
+
+    function addServiceRow(doj = '', doe = '', ncp1 = 0, ncp2 = 0, ncp3 = 0) {
+      serviceCount++;
+      const container = document.getElementById('serviceContainer');
+      const row = document.createElement('div');
+      row.className = 'service-row';
+      row.id = `serviceRow_${serviceCount}`;
+      row.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong class="text-secondary">Service Spell #${serviceCount}</strong>
+          ${serviceCount > 1 ? `<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeServiceRow(${serviceCount})">Remove</button>` : ''}
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label text-xs mb-1">Date of Joining</label>
+            <input type="date" class="form-control form-control-sm" id="doj_${serviceCount}" value="${doj}" onchange="calculatePension()">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-xs mb-1">Date of Exit</label>
+            <input type="date" class="form-control form-control-sm" id="doe_${serviceCount}" value="${doe}" onchange="calculatePension()">
+          </div>
+          <div class="col-md-4 mt-2">
+            <label class="form-label text-xs mb-1">NCP (&lt; 16.11.95)</label>
+            <input type="number" class="form-control form-control-sm" id="ncp1_${serviceCount}" value="${ncp1}" oninput="calculatePension()">
+          </div>
+          <div class="col-md-4 mt-2">
+            <label class="form-label text-xs mb-1">NCP (16.11.95 - 31.08.14)</label>
+            <input type="number" class="form-control form-control-sm" id="ncp2_${serviceCount}" value="${ncp2}" oninput="calculatePension()">
+          </div>
+          <div class="col-md-4 mt-2">
+            <label class="form-label text-xs mb-1">NCP (≥ 01.09.14)</label>
+            <input type="number" class="form-control form-control-sm" id="ncp3_${serviceCount}" value="${ncp3}" oninput="calculatePension()">
+          </div>
+        </div>
+      `;
+      container.appendChild(row);
+    }
+
+    function removeServiceRow(id) {
+      const row = document.getElementById(`serviceRow_${id}`);
+      if (row) row.remove();
+      calculatePension();
+    }
+
+    function calculatePension() {
+      const dobStr = document.getElementById('dob').value;
+      const calcDateStr = document.getElementById('calcDate').value;
+      const wage1995 = document.getElementById('wage1995').value;
+      const wages60 = parseFloat(document.getElementById('wages60Months').value) || 0;
+      const ncp60M = parseInt(document.getElementById('ncp60Months').value) || 0;
+
+      if (!dobStr || !calcDateStr) return;
+
+      const dob = new Date(dobStr + 'T00:00:00');
+      const calcDate = new Date(calcDateStr + 'T00:00:00');
+      
+      const eps95Start = new Date('1995-11-16');
+      const cutoff2014 = new Date('2014-08-31');
+      const cutoff2014Post = new Date('2014-09-01');
+
+      let totalPastServiceDays = 0; 
+      let totalActualDaysSince1995 = 0; 
+      let totalPre2014Days = 0; 
+      let totalPost2014Days = 0; 
+      let maxDoe = new Date('1900-01-01');
+
+      for (let i = 1; i <= serviceCount; i++) {
+        const dojInput = document.getElementById(`doj_${i}`);
+        const doeInput = document.getElementById(`doe_${i}`);
+        if (!dojInput || !doeInput || !dojInput.value || !doeInput.value) continue;
+
+        const doj = new Date(dojInput.value);
+        const doe = new Date(doeInput.value);
+        const ncpPre95 = parseInt(document.getElementById(`ncp1_${i}`).value) || 0;
+        const ncpPre14 = parseInt(document.getElementById(`ncp2_${i}`).value) || 0;
+        const ncpPost14 = parseInt(document.getElementById(`ncp3_${i}`).value) || 0;
+
+        if (doe > maxDoe) maxDoe = doe;
+
+        // Past Service
+        if (doj < eps95Start) {
+          const endPast = doe < eps95Start ? doe : new Date('1995-11-15');
+          const pastDays = Math.ceil((endPast - doj) / (1000 * 60 * 60 * 24)) + 1;
+          totalPastServiceDays += Math.max(0, pastDays - ncpPre95);
+        }
+
+        // Actual Service Since 16-11-1995 (No NCP deduction)
+        if (doe >= eps95Start) {
+          const startAct = doj > eps95Start ? doj : eps95Start;
+          const actDays = Math.ceil((doe - startAct) / (1000 * 60 * 60 * 24)) + 1;
+          totalActualDaysSince1995 += actDays;
+        }
+
+        // Formula Pre-2014
+        if (doj <= cutoff2014 && doe >= eps95Start) {
+          const startPre = doj > eps95Start ? doj : eps95Start;
+          const endPre = doe < cutoff2014 ? doe : cutoff2014;
+          const actualPre = Math.ceil((endPre - startPre) / (1000 * 60 * 60 * 24)) + 1;
+          totalPre2014Days += Math.max(0, actualPre - ncpPre14);
+        }
+
+        // Formula Post-2014
+        if (doe > cutoff2014) {
+          const startPost = doj > cutoff2014 ? doj : cutoff2014Post;
+          const actualPost = Math.ceil((doe - startPost) / (1000 * 60 * 60 * 24)) + 1;
+          totalPost2014Days += Math.max(0, actualPost - ncpPost14);
+        }
+      }
+
+      const totalContribDays = totalPastServiceDays + totalPre2014Days + totalPost2014Days;
+      const totalYears = totalContribDays / 365;
+
+      const dob58 = new Date(dob.getFullYear() + 58, dob.getMonth(), dob.getDate());
+      const commencementDate = maxDoe > dob58 ? maxDoe : dob58;
+
+      const alertBox = document.getElementById('eligibilityAlert');
+      if (totalContribDays < 3468) {
+        alertBox.className = "alert alert-danger";
+        alertBox.innerText = "Not Eligible for Pension: Total contributory service is under 9.5 years. Eligible for Form 10C.";
+        alertBox.classList.remove('d-none');
+        return;
+      } else {
+        alertBox.className = "alert alert-success";
+        alertBox.innerText = "Eligible for Pension: Service requirement (≥ 9.5 years) satisfied.";
+        alertBox.classList.remove('d-none');
+      }
+
+      const weightageDays = (totalContribDays >= 7300 && commencementDate >= dob58) ? 730 : 0;
+
+      // 1. PAST SERVICE
+      let pastServiceBenefit = 0;
+      if (totalPastServiceDays > 0) {
+        const pastServiceYears = Math.floor(totalPastServiceDays / 365);
+        const multiplier = getMultiplier(pastServiceYears, wage1995);
+        
+        let tableBIndex = Math.floor(totalActualDaysSince1995 / 365);
+        if (tableBIndex > 41) tableBIndex = 41; 
+        const tableBFactor = tableB[tableBIndex] || 0;
+        pastServiceBenefit = Math.round(multiplier * tableBFactor);
+      }
+
+      // 2. FORMULA PENSION
+      const adjustedDays = Math.max(1, 1825 - Math.max(0, ncp60M));
+      const avgSalary = Math.round((Math.max(0, wages60) * 30) / adjustedDays);
+      const cappedPreSalary = Math.min(avgSalary, 6500);
+
+      const formulaVal = ((totalPre2014Days * cappedPreSalary) + (weightageDays * cappedPreSalary) + (totalPost2014Days * avgSalary)) / (365 * 70);
+      const roundedFormulaPension = Math.round(formulaVal);
+
+      // 3. TOTAL PENSION
+      let totalPension = pastServiceBenefit + roundedFormulaPension;
+      totalPension = Math.max(totalPension, 1000); 
+
+      // 4. STRICT ARREARS CALCULATION (Excel Logic)
+      // "If calculation is in September, arrears calculated till July" = 2 months prior.
+      // Cut-off date becomes the last day of the month, 2 months ago.
+      let cutoffYear = calcDate.getFullYear();
+      let cutoffMonthIndex = calcDate.getMonth() - 2; // Subtract 2 months
+      if (cutoffMonthIndex < 0) {
+          cutoffMonthIndex += 12;
+          cutoffYear -= 1;
+      }
+      // Last day of that specific month
+      const arrearsCutoffDate = new Date(cutoffYear, cutoffMonthIndex + 1, 0); 
+
+      let totalArrears = 0;
+      let partMonthStr = "0 (Commencement future/same month)";
+      let fullMonthStr = "0";
+
+      if (arrearsCutoffDate >= commencementDate) {
+        // Step A: Pro-rated amount for the commencement month itself
+        const commYear = commencementDate.getFullYear();
+        const commMonth = commencementDate.getMonth();
+        const daysInCommMonth = new Date(commYear, commMonth + 1, 0).getDate();
+        
+        // Days payable in the commencement month = (Total Days in Month - Commencement Day) + 1
+        const daysDueInCommMonth = (daysInCommMonth - commencementDate.getDate()) + 1;
+        const partMonthAmount = Math.round((totalPension / daysInCommMonth) * daysDueInCommMonth);
+        partMonthStr = `₹ ${partMonthAmount} (${daysDueInCommMonth} days out of ${daysInCommMonth})`;
+
+        // Step B: Full months between the end of the commencement month and the cut-off date
+        let fullMonthsCount = 0;
+        if (arrearsCutoffDate.getFullYear() > commYear || (arrearsCutoffDate.getFullYear() === commYear && arrearsCutoffDate.getMonth() > commMonth)) {
+            const yearDiff = arrearsCutoffDate.getFullYear() - commYear;
+            const monthDiff = arrearsCutoffDate.getMonth() - commMonth;
+            fullMonthsCount = (yearDiff * 12) + monthDiff; // Subtracting the commencement month itself is implicit because we only count the months *after* it up to the cut-off
+        }
+        
+        const fullMonthsAmount = totalPension * fullMonthsCount;
+        fullMonthStr = `₹ ${fullMonthsAmount.toLocaleString()} (${fullMonthsCount} months)`;
+
+        // Step C: Total
+        totalArrears = partMonthAmount + fullMonthsAmount;
+      } else {
+        partMonthStr = "N/A (Pension hasn't commenced by cut-off)";
+        fullMonthStr = "N/A";
+      }
+
+      // Render Display
+      document.getElementById('resCommencement').innerText = commencementDate.toLocaleDateString('en-GB');
+      document.getElementById('resTotalYears').innerText = `${totalYears.toFixed(2)} Yrs (${totalContribDays} D)`;
+      document.getElementById('resAvgSalary').innerText = `₹ ${avgSalary.toLocaleString()}`;
+      document.getElementById('resWeightage').innerText = `${weightageDays} Days`;
+      
+      document.getElementById('resPSB').innerText = totalPastServiceDays > 0 ? `₹ ${pastServiceBenefit.toLocaleString()}` : "N/A (No Pre-1995 Service)";
+      document.getElementById('resFormula').innerText = `₹ ${roundedFormulaPension.toLocaleString()}`;
+      document.getElementById('resMonthlyPension').innerText = `₹ ${totalPension.toLocaleString()} / mo`;
+
+      document.getElementById('resCutoffDate').innerText = arrearsCutoffDate.toLocaleDateString('en-GB');
+      document.getElementById('resPartMonthDue').innerText = partMonthStr;
+      document.getElementById('resFullMonthsDue').innerText = fullMonthStr;
+      document.getElementById('resArrearsAmount').innerText = `₹ ${totalArrears.toLocaleString()}`;
+    }
+
+    function resetCalculator() {
+      document.getElementById('epsForm').reset();
+      document.getElementById('serviceContainer').innerHTML = '';
+      serviceCount = 0;
+      addServiceRow('1990-05-15', '2020-03-31', 0, 10, 0);
+      calculatePension();
+    }
+
+    // Recalculate immediately whenever any input changes.
+    document.addEventListener('input', function(event) {
+      if (event.target.closest('#epsForm')) calculatePension();
+    });
+    document.addEventListener('change', function(event) {
+      if (event.target.closest('#epsForm')) calculatePension();
+    });
+
+    // Initialize default
+    window.onload = function() {
+      addServiceRow('1990-05-15', '2020-03-31', 0, 10, 0);
+      calculatePension();
+    };
+  </script>
+</body>
+</html>
