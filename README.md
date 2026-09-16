@@ -1,4 +1,4 @@
-# EPS Pension Verification Tool V1.0
+# EPS Pension Verification Tool V3.0
 
 Developed by **Tushar Pandey, RO Dadar**.
 
@@ -7,12 +7,6 @@ A static HTML/CSS/JavaScript web app based on the uploaded EPS-95 pension calcul
 ## Run locally
 Open `index.html` in a browser. No build step or server is required.
 
-## Publish on GitHub Pages
-1. Create a new GitHub repository.
-2. Upload `index.html`, `styles.css`, and `app.js`.
-3. Go to **Settings → Pages**.
-4. Select **Deploy from a branch**, choose `main` and `/root`.
-5. Save. GitHub will provide the public URL.
 
 ## Notes
 - The calculator follows the workbook's broad logic: past-service benefit, Table B factor, pre/post-01-09-2014 service split, NCP deductions, formula pension and ₹1,000 minimum.
