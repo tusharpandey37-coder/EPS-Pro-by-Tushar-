@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EPS-95 Pension Calculation Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="seal" aria-hidden="true">EPS<br>95</div>
+    <div class="masthead-text">
+      <h1>EPS-95 Pension Calculation Tool</h1>
+      <p class="dev-credit">Developed by <strong>Tushar Pandey, RO Dadar</strong></p>
+      <p class="masthead-sub">Blue cells = your inputs. Results update after you press "Calculate pension".</p>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar" id="tabbar" aria-label="Sections">
+  <button class="tab active" data-tab="calculator">Calculator</button>
+  <button class="tab" data-tab="arrears">Arrears</button>
+  <button class="tab" data-tab="readme">Read me</button>
+</nav>
+
+<main>
+
+<!-- ======================= CALCULATOR ======================= -->
+<section class="view active" id="view-calculator">
+
+  <section class="panel">
+    <div class="panel-head"><h2>1 &nbsp;Member</h2></div>
+    <div class="field-row">
+      <label class="field">
+        <span>Member name</span>
+        <input type="text" id="memberName" placeholder="Enter member name">
+      </label>
+      <label class="field">
+        <span>Date of birth</span>
+        <input type="date" id="dob">
+      </label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>2 &nbsp;Service ledger</h2>
+      <button type="button" class="btn-outline" id="addRowBtn">+ Add row</button>
+    </div>
+    <p class="hint">One row per employment spell, oldest first. Leave unused rows blank. A spell straddling 16-11-1995 or 01-09-2014 is split automatically. BIS = Break in Service days, subtracted from gross past service.</p>
+    <div class="table-scroll">
+      <table class="ledger" id="ledgerTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Employer / Member ID</th>
+            <th>Date of joining</th>
+            <th>Date of exit</th>
+            <th>BIS days</th>
+            <th>NCP pre-2014<br><small>16-11-1995 to 31-08-2014</small></th>
+            <th>NCP post-2014<br><small>from 01-09-2014</small></th>
+            <th>NCP last 12 m<br><small>auto, pre-2014 exits</small></th>
+            <th>NCP last 60 m<br><small>auto, post-2014 exits</small></th>
+            <th>Pensionable days<br><small>preview</small></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+    <div class="ledger-totals" id="ledgerTotals"></div>
+    <div class="status-card" id="exitStatusCard">
+      <div id="exitStatusLine">Enter date of birth and at least one service row to see the pension commencement date.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>3 &nbsp;Wage inputs</h2></div>
+    <div class="field-row">
+      <label class="field">
+        <span>Wage as on 15-11-1995 <small>(₹/month — only needed if service existed before 16-11-1995)</small></span>
+        <input type="number" id="wage1995" min="0" value="0">
+      </label>
+      <label class="field">
+        <span>Wage ceiling before 01-09-2014 <small>(₹, default 6500)</small></span>
+        <input type="number" id="preCeiling" min="0" value="6500">
+      </label>
+    </div>
+
+    <!-- 12-month section (shown when exit is before 01-09-2014) -->
+    <div id="wage12section" hidden>
+      <p class="hint wage-window-note">Exit is before 01-09-2014 — using the <strong>12-month</strong> wage window.</p>
+      <div class="field-row">
+        <label class="field">
+          <span>Sum of EPS wages, last 12 months before exit <small>(₹)</small></span>
+          <input type="number" id="sum12" min="0" value="0">
+        </label>
+        <label class="field">
+          <span>NCP days in last 12 months <small>(auto from ledger — verify)</small></span>
+          <input type="number" id="ncp12Display" min="0" value="0">
+        </label>
+      </div>
+    </div>
+
+    <!-- 60-month section (shown when exit is on/after 01-09-2014) -->
+    <div id="wage60section">
+      <p class="hint wage-window-note">Exit is on or after 01-09-2014 — using the <strong>60-month</strong> wage window.</p>
+      <div class="field-row">
+        <label class="field">
+          <span>Sum of EPS wages, last 60 months before exit <small>(₹)</small></span>
+          <input type="number" id="sum60" min="0" value="0">
+        </label>
+        <label class="field">
+          <span>NCP days post-2014 in last 60 months <small>(auto from ledger — verify)</small></span>
+          <input type="number" id="ncp60Display" min="0" value="0">
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <div class="calc-cta">
+    <button type="button" class="btn-primary" id="calculateBtn">Calculate pension</button>
+    <span class="calc-hint">Recalculates everything from the current inputs.</span>
+  </div>
+
+  <section class="panel results-panel" id="resultsPanel" hidden>
+    <div class="panel-head"><h2>Result</h2></div>
+    <div id="ineligibleBanner" class="banner-error" hidden></div>
+    <div id="eligibleResult" hidden>
+      <div class="status-card" id="pensionStatusCard"></div>
+      <div class="result-grid">
+        <div class="result-tile hero-tile">
+          <span>Final monthly member pension</span>
+          <strong id="finalPension">₹0</strong>
+          <small id="minPensionNote"></small>
+        </div>
+        <div class="result-tile">
+          <span>Past service benefit</span>
+          <strong id="pastServiceBenefit">₹0</strong>
+        </div>
+        <div class="result-tile">
+          <span>Formula pension</span>
+          <strong id="formulaPension">₹0</strong>
+        </div>
+        <div class="result-tile">
+          <span>2-year weightage applied</span>
+          <strong id="weightageDays">0 days</strong>
+        </div>
+        <div class="result-tile">
+          <span>Eligible service</span>
+          <strong id="eligibleServiceOut">—</strong>
+        </div>
+        <div class="result-tile">
+          <span>Pension commencement date</span>
+          <strong id="commencementOut">—</strong>
+        </div>
+      </div>
+      <div class="snapshot">
+        <h3>Calculation snapshot</h3>
+        <p class="snapshot-sub">Step-by-step, following the EPFO IDS worksheet format.</p>
+        <dl class="snapshot-list" id="snapshotList"></dl>
+      </div>
+    </div>
+  </section>
+
+</section>
+
+<!-- ======================= ARREARS ======================= -->
+<section class="view" id="view-arrears">
+  <section class="panel">
+    <div class="panel-head"><h2>Arrears of pension</h2></div>
+    <p class="hint">Run the calculator first. Arrears = monthly pension × full months from commencement, plus a pro-rated part-month for the commencement month.</p>
+    <div class="field-row">
+      <label class="field">
+        <span>Monthly pension <small>(from calculator)</small></span>
+        <input type="number" id="arrPension" min="0" value="0" readonly>
+      </label>
+      <label class="field">
+        <span>Pension commencement date <small>(from calculator)</small></span>
+        <input type="date" id="arrCommencement" readonly>
+      </label>
+      <label class="field">
+        <span>Compute arrears up to <small>(any date in the last month)</small></span>
+        <input type="date" id="arrUpto">
+      </label>
+    </div>
+    <div class="calc-cta">
+      <button type="button" class="btn-primary" id="arrearsBtn">Calculate arrears</button>
+    </div>
+    <div class="result-grid" id="arrearsResults" hidden>
+      <div class="result-tile">
+        <span>Commencement-month amount</span>
+        <strong id="arrPart">₹0</strong>
+      </div>
+      <div class="result-tile">
+        <span>Full months counted</span>
+        <strong id="arrMonths">0</strong>
+      </div>
+      <div class="result-tile">
+        <span>Full-months amount</span>
+        <strong id="arrFullAmt">₹0</strong>
+      </div>
+      <div class="result-tile hero-tile">
+        <span>Total arrears payable</span>
+        <strong id="arrTotal">₹0</strong>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:12px">TDS, relief and government subsidy are not applied here — EPFO computes TDS at BRS generation.</p>
+  </section>
+</section>
+
+<!-- ======================= READ ME ======================= -->
+<section class="view" id="view-readme">
+  <section class="panel readme">
+    <div class="panel-head"><h2>Read me</h2></div>
+    <div id="readmeContent"></div>
+  </section>
+</section>
+
+</main>
+
+<footer>
+  <p><strong>EPS-95 Pension Calculation Tool</strong> — Developed by Tushar Pandey, RO Dadar.</p>
+  <p class="disclaimer">This is a privately developed calculation aid with no connection to EPFO. It is illustrative only and not an official determination of pension entitlement. Verify against applicable rules and official records before relying on it.</p>
+</footer>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
