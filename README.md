@@ -47,14 +47,7 @@ Requires Node.js ≥ 16. No `npm install` needed — `test.js` only uses `engine
 
 When a member leaves service before 58 (resignation, cessation, etc.), pension is not payable immediately. It commences on the date the member is deemed to attain 58 — the day before the 58th birthday anniversary (Indian legal convention). No weightage applies in this case.
 
-## Verified against
 
-Two real EPFO IDS cum Worksheets, dated 16-09-2026:
-
-| Member | PSB | Formula pension | Total | Arrears |
-|---|---|---|---|---|
-| Baby S (UAN 100323502431) | ₹839 | ₹4,427 | ₹5,266 | ₹21,240 |
-| Sudhakar Sathyamoorthi (UAN 100365645183) | — | ₹2,250* | ₹2,250* | — |
 
 *Engine returns ₹2,249 — within the documented ±₹1 rounding quirk; see Read Me in the app.
 
