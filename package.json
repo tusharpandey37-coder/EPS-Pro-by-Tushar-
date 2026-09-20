@@ -1,0 +1,10 @@
+{
+  "name": "eps95-pension-calculation-tool",
+  "version": "1.0.0",
+  "description": "EPS-95 member pension calculator — zero-dependency web tool, GitHub Pages ready",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "author": "Tushar Pandey",
+  "license": "UNLICENSED"
+}
